@@ -40,7 +40,7 @@ If WiFi is not configured, the PhotoFrame creates a setup network. Connect to it
 - Recommended size: `320 x 240` pixels
 - Use **Edit Mode** to crop, reposition, zoom, or rotate images with other dimensions.
 
-Keep at least 500 MB free on the SD card. Do not remove the card during uploads or deletions.
+Keep at least 50 MB free on the SD card. Do not remove the card during uploads or deletions.
 
 ## Dashboard
 
