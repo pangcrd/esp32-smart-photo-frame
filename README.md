@@ -32,7 +32,12 @@ An ESP32-powered smart photo frame that displays images from an SD card and prov
 4. Open **Gallery** to upload photos.
 5. Open **Weather** to configure a location.
 
-If WiFi is not configured, the PhotoFrame creates a setup network. Connect to it and follow the browser instructions.
+If WiFi has not been configured, the PhotoFrame starts in **AP mode**:
+
+1. Connect your phone or computer to the WiFi network `PhotoFrame-Setup`.
+2. Open `http://192.168.4.1` in a browser.
+3. Goto wifi page and configure your home WiFi network.
+4. Reconnect your phone or computer to the newly configured WiFi network after the PhotoFrame restarts.
 
 ## Photo Requirements
 
@@ -40,11 +45,17 @@ If WiFi is not configured, the PhotoFrame creates a setup network. Connect to it
 - Recommended size: `320 x 240` pixels
 - Use **Edit Mode** to crop, reposition, zoom, or rotate images with other dimensions.
 
-Keep at least 50 MB free on the SD card. Do not remove the card during uploads or deletions.
+Keep at least 20 MB free on the SD card. Do not remove the card during uploads or deletions.
 
-## Dashboard
+## Webapp Preview
 
-The dashboard reports device health and storage status, including CPU temperature, free RAM, WiFi signal strength, SD card availability, uptime, IP address, and storage usage. Display brightness can be adjusted directly from the dashboard.
+| Home Page | WiFi Page |
+| --- | --- |
+| [![Home page](./assets/dashboard/home.png)](./assets/dashboard/home.png) | [![WiFi page](./assets/dashboard/wifi.png)](./assets/dashboard/wifi.png) |
+
+| Weather Page | Settings Page |
+| --- | --- |
+| [![Weather page](./assets/dashboard/weather.png)](./assets/dashboard/weather.png) | [![Settings page](./assets/dashboard/settings.png)](./assets/dashboard/settings.png) |
 
 ## Weather Setup
 
@@ -57,6 +68,37 @@ In **Weather**, enter:
 
 An Internet connection is required to update weather data.
 
+## Project Review
+
+| Front | Left Side |
+| --- | --- |
+| [![Front view](./assets/review/front.jpg)](./assets/review/front.jpg) | [![Left side view](./assets/review/left-side.jpg)](./assets/review/left-side.jpg) |
+
+| Right Side | Back Side |
+| --- | --- |
+| [![Right side view](./assets/review/right-side.jpg)](./assets/review/right-side.jpg) | [![Back side view](./assets/review/back-side.jpg)](./assets/review/back-side.jpg) |
+
+## JLCPCB Sponsor
+
+If you are looking for high-quality PCB and stencil manufacturing, [JLCPCB](https://jlcpcb.com/) is a great option and a familiar name among makers and engineers.
+
+With advanced equipment and a professional manufacturing process, JLCPCB delivers reliable quality while keeping the process simple, from manufacturing to delivery at your doorstep.
+
+JLCPCB also offers a PCB layout service for turning schematics into production-ready PCB files. Their engineers provide free reviews within three hours and follow an efficient workflow to help shorten your time to market.
+
+To get started, visit the [JLCPCB ordering page](https://jlcpcb.com/), upload your schematics and requirements, then choose the settings you need. Check the current layout promotion for a potential `$105` coupon.
+
+
+## Recommended Parts
+
+| Part | Suggested specification | Affiliate link |
+| --- | --- | --- |
+| Display | 2.8-inch LCD, 240 x 320 | `[Add link]` |
+| Microcontroller | ESP32-S3 custom board | `[Add link]` |
+| Heat-set inserts | M3 brass inserts | `[Add link]` |
+| Push button | D12 momentary push button | `[Add link]` |
+| Micro SD card | 8 GB or larger | `[Add link]` |
+
 ## Settings
 
 Use **Settings** to change the theme and accent color, restart the device, or restore factory settings. Factory reset removes WiFi, weather, gallery, and slideshow settings, but does not delete photos stored on the SD card.
@@ -67,3 +109,4 @@ Use **Settings** to change the theme and accent color, restart the device, or re
 - **Photos missing:** Check the SD card, file extension, and available storage.
 - **Upload failed:** Use JPG/JPEG, confirm `320 x 240` dimensions, or enable Edit Mode.
 - **Weather not updating:** Check Internet access and location values.
+
