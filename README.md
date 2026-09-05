@@ -109,4 +109,5 @@ Use **Settings** to change the theme and accent color, restart the device, or re
 - **Photos missing:** Check the SD card, file extension, and available storage.
 - **Upload failed:** Use JPG/JPEG, confirm `320 x 240` dimensions, or enable Edit Mode.
 - **Weather not updating:** Check Internet access and location values.
+- **Non-commercial end-user**
 
