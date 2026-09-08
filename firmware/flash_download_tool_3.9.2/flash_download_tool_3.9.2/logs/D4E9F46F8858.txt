@@ -1,0 +1,88 @@
+*************************** START ****************************
+START TIME: 202605291726
+CONNECT BAUD: 115200
+set state: ESP_DL_SYNC
+serial port opened
+-----------
+baud:115200
+root baud:115200
+-------------
+===============BAUD : 115200===============CALL DEVICE SYNC
+connecting...
+chip sync ok
+mac l: 0xf46f8858
+mac h: 0xf4d4e9
+crc_cal: 244
+crc_read: 244
+crc_test: 0
+ESP32 MAC CRC OK
+get mac res: 1
+get flash id : 0x00164046
+manufacturer_id: 0x46
+device_id: 0x4016
+Wrote 2084640 bytes (792925 compressed) at 0x00000000 in 69.9 seconds (effective 238.5 kbit/s)...
+Hash of data verified.
+Leaving...
+com closed
+Use time: 73 s
+Download result: PASS
+*************************** END ****************************
+
+*************************** START ****************************
+START TIME: 202605291750
+CONNECT BAUD: 115200
+set state: ESP_DL_SYNC
+serial port opened
+-----------
+baud:115200
+root baud:115200
+-------------
+===============BAUD : 115200===============CALL DEVICE SYNC
+connecting...
+chip sync ok
+mac l: 0xf46f8858
+mac h: 0xf4d4e9
+crc_cal: 244
+crc_read: 244
+crc_test: 0
+ESP32 MAC CRC OK
+get mac res: 1
+get flash id : 0x00164046
+manufacturer_id: 0x46
+device_id: 0x4016
+SET FLASH PARAMS
+com closed
+Use time: 3 s
+Download result: PASS
+*************************** END ****************************
+
+*************************** START ****************************
+START TIME: 202605291751
+CONNECT BAUD: 115200
+set state: ESP_DL_SYNC
+serial port opened
+-----------
+baud:115200
+root baud:115200
+-------------
+===============BAUD : 115200===============CALL DEVICE SYNC
+connecting...
+chip sync ok
+mac l: 0xf46f8858
+mac h: 0xf4d4e9
+crc_cal: 244
+crc_read: 244
+crc_test: 0
+ESP32 MAC CRC OK
+get mac res: 1
+get flash id : 0x00164046
+manufacturer_id: 0x46
+device_id: 0x4016
+Wrote 2084640 bytes (792925 compressed) at 0x00000000 in 12.1 seconds (effective 1376.0 kbit/s)...
+Hash of data verified.
+Leaving...
+com closed
+Use time: 16 s
+Download result: PASS
+*************************** END ****************************
+
