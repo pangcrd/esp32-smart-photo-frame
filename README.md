@@ -9,7 +9,7 @@
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/pangcrd)
 
 An ESP32-powered smart photo frame that displays images from an SD card and provides a web dashboard for remote management.
-[![demo](./images/preview.png)]
+![demo](./images/preview.png)
 ## Features
 
 - Automatic photo slideshow from an SD card
@@ -107,12 +107,12 @@ To get started, visit the [JLCPCB ordering page](https://jlcpcb.com/promotion/17
 
 ## Wiring diagram
 
-[![demo](./images/wiring.png)]
+![demo](./images/wiring.png)
 
 ## Firmware upload 
-**This firmware version only use for ST7789 LCD driver**
-**If you want use another LCD driver, you should build your own firmware with IDE**
-[![demo](./images/how-to-install-firmware.png)]
+- **This firmware version only use for ST7789 LCD driver...**
+- **If you want use another LCD driver, you should build your own firmware with IDE**
+![demo](./images/how-to-install-firmware.png)
 
 ## Troubleshooting
 
