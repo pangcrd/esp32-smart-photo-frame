@@ -9,7 +9,7 @@
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/pangcrd)
 
 An ESP32-powered smart photo frame that displays images from an SD card and provides a web dashboard for remote management.
-
+[![demo](./images/preview.png)]
 ## Features
 
 - Automatic photo slideshow from an SD card
@@ -23,6 +23,26 @@ An ESP32-powered smart photo frame that displays images from an SD card and prov
 - English and Vietnamese interface
 - Light/dark themes and customizable accent colors
 - Device restart and factory reset options
+
+## Project Review
+
+| Front | Left Side |
+| --- | --- |
+| [![Front view](./images/front_view.jpg)](./images/front_view.jpg) | [![Left side view](./images/left_view.jpg)](./images/left_view.jpg) |
+
+| Right Side | Back Side |
+| --- | --- |
+| [![Right side view](./images/right_view.jpg)](./images/right_view.jpg) | [![Back side view](./images/back_view.jpg)](./images/back_view.jpg) |
+
+## Webapp Preview
+
+| Home Page | WiFi Page |
+| --- | --- |
+| [![Home page](./images/dashboard.png)](./images/dashboard.png) | [![WiFi page](./images/wifi_setting.png)](./images/wifi_setting.png) |
+
+| Weather Page | Settings Page |
+| --- | --- |
+| [![Weather page](./images/weather_config.png)](./images/weather_config.png) | [![Settings page](./images/system_setting.png)](./images/system_setting.png) |
 
 ## Quick Start
 
@@ -47,20 +67,10 @@ If WiFi has not been configured, the PhotoFrame starts in **AP mode**:
 
 Keep at least 20 MB free on the SD card. Do not remove the card during uploads or deletions.
 
-## Webapp Preview
-
-| Home Page | WiFi Page |
-| --- | --- |
-| [![Home page](./assets/dashboard/home.png)](./assets/dashboard/home.png) | [![WiFi page](./assets/dashboard/wifi.png)](./assets/dashboard/wifi.png) |
-
-| Weather Page | Settings Page |
-| --- | --- |
-| [![Weather page](./assets/dashboard/weather.png)](./assets/dashboard/weather.png) | [![Settings page](./assets/dashboard/settings.png)](./assets/dashboard/settings.png) |
-
 ## Weather Setup
 
 In **Weather**, enter:
-
+**You can get your "Latitude - Longitude" with Google map or Apple map**
 - Latitude
 - Longitude
 - GMT timezone, such as `+07` or `-05`
@@ -68,40 +78,41 @@ In **Weather**, enter:
 
 An Internet connection is required to update weather data.
 
-## Project Review
+## Settings
 
-| Front | Left Side |
-| --- | --- |
-| [![Front view](./assets/review/front.jpg)](./assets/review/front.jpg) | [![Left side view](./assets/review/left-side.jpg)](./assets/review/left-side.jpg) |
-
-| Right Side | Back Side |
-| --- | --- |
-| [![Right side view](./assets/review/right-side.jpg)](./assets/review/right-side.jpg) | [![Back side view](./assets/review/back-side.jpg)](./assets/review/back-side.jpg) |
+Use **Settings** to change the theme and accent color, restart the device, or restore factory settings. Factory reset removes WiFi, weather, gallery, and slideshow settings, but does not delete photos stored on the SD card.
 
 ## JLCPCB Sponsor
 
-If you are looking for high-quality PCB and stencil manufacturing, [JLCPCB](https://jlcpcb.com/) is a great option and a familiar name among makers and engineers.
+If you are looking for high-quality PCB and stencil manufacturing, [JLCPCB](https://jlcpcb.com/coupon-center?from=pangcrd_coupon) is a great option and a familiar name among makers and engineers.
 
 With advanced equipment and a professional manufacturing process, JLCPCB delivers reliable quality while keeping the process simple, from manufacturing to delivery at your doorstep.
 
 JLCPCB also offers a PCB layout service for turning schematics into production-ready PCB files. Their engineers provide free reviews within three hours and follow an efficient workflow to help shorten your time to market.
 
-To get started, visit the [JLCPCB ordering page](https://jlcpcb.com/), upload your schematics and requirements, then choose the settings you need. Check the current layout promotion for a potential `$105` coupon.
+To get started, visit the [JLCPCB ordering page](https://jlcpcb.com/promotion/1776849103?from=pangcrd_105coupon), upload your schematics and requirements, then choose the settings you need. Check the current layout promotion for a potential `$105` coupon.
 
 
 ## Recommended Parts
 
 | Part | Suggested specification | Affiliate link |
 | --- | --- | --- |
-| Display | 2.8-inch LCD, 240 x 320 | `[Add link]` |
-| Microcontroller | ESP32-S3 custom board | `[Add link]` |
-| Heat-set inserts | M3 brass inserts | `[Add link]` |
-| Push button | D12 momentary push button | `[Add link]` |
-| Micro SD card | 8 GB or larger | `[Add link]` |
+| Display | 2.8-inch LCD, 240 x 320 | [Buy LCD ST7789](https://s.click.aliexpress.com/e/_c2vXjECt) |
+| Microcontroller | My ESP32-S3 custom board | [Only Shoppe]() |
+| Custom your own | ESP32-S3 N16R8 | [Buy module](https://s.click.aliexpress.com/e/_c3ljzkZb) |
+| Adafruit Micro SDcard| SDIO Card Breakout | [Buy module](https://s.click.aliexpress.com/e/_c45LSBBF) |
+| Heat-set inserts M3 | M3*4*4.2 | [ Buy Brass Insert Nut](https://s.click.aliexpress.com/e/_c3gRMkTf) |
+| Push button | Momentary 2pcs/latching 1pcs | [Buy button](https://s.click.aliexpress.com/e/_c3XV5Hi1) |
+| Micro SD card | 1 GB or larger | [Buy SD Card](https://s.click.aliexpress.com/e/_c3R9ssnX) |
 
-## Settings
+## Wiring diagram
 
-Use **Settings** to change the theme and accent color, restart the device, or restore factory settings. Factory reset removes WiFi, weather, gallery, and slideshow settings, but does not delete photos stored on the SD card.
+[![demo](./images/wiring.png)]
+
+## Firmware upload 
+**This firmware version only use for ST7789 LCD driver**
+**If you want use another LCD driver, you should build your own firmware with IDE**
+[![demo](./images/how-to-install-firmware.png)]
 
 ## Troubleshooting
 
