@@ -70,17 +70,26 @@ Keep at least 20 MB free on the SD card. Do not remove the card during uploads o
 ## Weather Setup
 
 In **Weather**, enter:
-**You can get your "Latitude - Longitude" with Google map or Apple map**
 - Latitude
 - Longitude
 - GMT timezone, such as `+07` or `-05`
-- City name
+- City name  
+**You can get your "Latitude - Longitude" with Google map or Apple map**
 
 An Internet connection is required to update weather data.
 
 ## Settings
 
 Use **Settings** to change the theme and accent color, restart the device, or restore factory settings. Factory reset removes WiFi, weather, gallery, and slideshow settings, but does not delete photos stored on the SD card.
+
+## Schematic & PCB Design
+**Schematic diagram**  
+
+![sch](./images/schematic.png)
+**PCB view layout**  
+| PCB front view | PCB back view  |
+| --- | --- |
+| [![front view](./images/pcb_front_view.png)](./images/pcb_front_view.png) | [![back view](./images/pcb_back_view.png)](./images/pcb_back_view.png) |
 
 ## JLCPCB Sponsor
 
