@@ -106,9 +106,9 @@ To get started, visit the [JLCPCB ordering page](https://jlcpcb.com/promotion/17
 
 | Part | Suggested specification | Affiliate link |
 | --- | --- | --- |
-| Display | 2.8-inch LCD, 240 x 320 | [Buy LCD ST7789](https://s.click.aliexpress.com/e/_c2vXjECt) |
-| Microcontroller | My ESP32-S3 custom board | [Only Shoppe](https://shopee.vn/product/145746151/54867710027/) |
-| Enclosure | 3D printer part | [Only Shoppe](https://shopee.vn/product/145746151/58017697923/) |
+| Display | 2.8-inch LCD, 240 x 320 | [Buy LCD ST7789](https://s.click.aliexpress.com/e/_c2vXjECt)<br>[Shoppe](https://shopee.vn/product/145746151/57217688896/) |
+| Microcontroller | My ESP32-S3 custom board | [Shoppe](https://shopee.vn/product/145746151/54867710027/) |
+| Enclosure | 3D printer part | [Shoppe](https://shopee.vn/product/145746151/58017697923/) |
 | Custom your own | ESP32-S3 N16R8 | [Buy module](https://s.click.aliexpress.com/e/_c3ljzkZb) |
 | Adafruit Micro SDcard| SDIO Card Breakout | [Buy module](https://s.click.aliexpress.com/e/_c45LSBBF) |
 | Heat-set inserts M3 | M3*4*4.2 | [ Buy Brass Insert Nut](https://s.click.aliexpress.com/e/_c3gRMkTf) |
