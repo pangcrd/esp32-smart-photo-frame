@@ -83,9 +83,9 @@ An Internet connection is required to update weather data.
 Use **Settings** to change the theme and accent color, restart the device, or restore factory settings. Factory reset removes WiFi, weather, gallery, and slideshow settings, but does not delete photos stored on the SD card.
 
 ## Schematic & PCB Design
-**Schematic diagram**  
+**Schematic diagram**   
+![sch](./images/schematic.png)  
 
-![sch](./images/schematic.png)
 **PCB view layout**  
 | PCB front view | PCB back view  |
 | --- | --- |
@@ -114,7 +114,9 @@ To get started, visit the [JLCPCB ordering page](https://jlcpcb.com/promotion/17
 | Push button | Momentary 2pcs/latching 1pcs | [Buy button](https://s.click.aliexpress.com/e/_c3XV5Hi1) |
 | Micro SD card | 1 GB or larger | [Buy SD Card](https://s.click.aliexpress.com/e/_c3R9ssnX) |
 
-## Wiring diagram
+## Wiring diagram  
+
+![sch1](./images/sch_pjpf.png)  
 
 ![demo](./images/wiring.png)
 
@@ -122,6 +124,8 @@ To get started, visit the [JLCPCB ordering page](https://jlcpcb.com/promotion/17
 - **This firmware version only use for ST7789 LCD driver...**
 - **If you want use another LCD driver, you should build your own firmware with IDE**
 ![demo](./images/how-to-install-firmware.png)
+- **Upload firmware with online tool**  
+ [Online download firmware page](https://espressif.github.io/esptool-js/)
 
 ## Troubleshooting
 
