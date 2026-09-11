@@ -106,14 +106,14 @@ To get started, visit the [JLCPCB ordering page](https://jlcpcb.com/promotion/17
 
 | Part | Suggested specification | Affiliate link |
 | --- | --- | --- |
-| Display | 2.8-inch LCD, 240 x 320 | [Buy LCD ST7789](https://s.click.aliexpress.com/e/_c2vXjECt)<br>[Shoppe](https://shopee.vn/product/145746151/57217688896/) |
+| Display | 2.8-inch LCD, 240 x 320 | [AliExpress](https://s.click.aliexpress.com/e/_c2vXjECt)<br>[Shoppe](https://shopee.vn/product/145746151/57217688896/) |
 | Microcontroller | My ESP32-S3 custom board | [Shoppe](https://shopee.vn/product/145746151/54867710027/) |
 | Enclosure | 3D printer part | [Shoppe](https://shopee.vn/product/145746151/58017697923/) |
-| Custom your own | ESP32-S3 N16R8 | [Buy module](https://s.click.aliexpress.com/e/_c3ljzkZb) |
-| Adafruit Micro SDcard| SDIO Card Breakout | [Buy module](https://s.click.aliexpress.com/e/_c45LSBBF) |
-| Heat-set inserts M3 | M3*4*4.2 | [ Buy Brass Insert Nut](https://s.click.aliexpress.com/e/_c3gRMkTf) |
-| Push button | Momentary 2pcs/latching 1pcs | [Buy button](https://s.click.aliexpress.com/e/_c3XV5Hi1) |
-| Micro SD card | 1 GB or larger | [Buy SD Card](https://s.click.aliexpress.com/e/_c3R9ssnX) |
+| Custom your own | ESP32-S3 N16R8 | [AliExpress](https://s.click.aliexpress.com/e/_c3ljzkZb) |
+| Adafruit Micro SDcard| SDIO Card Breakout | [AliExpress](https://s.click.aliexpress.com/e/_c45LSBBF) |
+| Heat-set inserts M3 | M3*4*4.2 | [ AliExpress](https://s.click.aliexpress.com/e/_c3gRMkTf) |
+| Push button | Momentary 2pcs/latching 1pcs | [AliExpress](https://s.click.aliexpress.com/e/_c3XV5Hi1) |
+| Micro SD card | 1 GB or larger | [AliExpress](https://s.click.aliexpress.com/e/_c3R9ssnX) |
 
 ## Wiring diagram  
 
