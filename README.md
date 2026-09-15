@@ -8,6 +8,7 @@
 [![YouTube](https://img.shields.io/badge/YouTube-FF0000?logo=youtube&logoColor=white)](https://www.youtube.com/@pangcrd)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/pangcrd)
 [![Donate via PayPal](https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal&logoColor=white)](https://www.paypal.me/vnbg)
+[![Donate via MoMo](https://img.shields.io/badge/Donate-MoMo-A50064?style=flat&logoColor=white)](https://me.momo.vn/xmsli3iKtAsdfviV)
 
 An ESP32-powered smart photo frame that displays images from an SD card and provides a web dashboard for remote management.
 
