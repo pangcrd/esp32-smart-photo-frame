@@ -1,4 +1,4 @@
-# PhotoFrame
+# Photo Frame Open Source Project
 
 [![ESP32](https://img.shields.io/badge/ESP32-E7352C?logo=espressif&logoColor=white)](https://www.espressif.com/en/products/socs/esp32)
 [![PlatformIO](https://img.shields.io/badge/PlatformIO-FF6C37?logo=platformio&logoColor=white)](https://platformio.org/)
