@@ -9,7 +9,8 @@
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/pangcrd)
 
 An ESP32-powered smart photo frame that displays images from an SD card and provides a web dashboard for remote management.
-![demo](./images/preview.png)
+
+[![demo](./images/preview.png)](https://youtu.be/XxymCvWz6dY)
 ## Features
 
 - Automatic photo slideshow from an SD card
