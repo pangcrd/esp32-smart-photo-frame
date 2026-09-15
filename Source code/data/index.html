@@ -16,7 +16,13 @@
          Khi nâng cấp lên màn hình độ phân giải lớn hơn, chỉ cần đổi 2 hằng số JS + 2 số này là đủ,
          không cần sửa logic crop/zoom/pinch vì toàn bộ engine editor dùng kích thước canvas động. -->
     <div class="editorCanvasWrap"><canvas class="editorCanvas" id="editorCanvas" width="320" height="240"></canvas></div>
-    <div class="editorTools"><button class="btn secondary" id="zoomOut" type="button">−</button><input class="editorZoom" id="editorZoom" type="range" min="1" max="3" step="0.01" value="1" aria-label="Zoom"><button class="btn secondary" id="zoomIn" type="button">+</button><button class="btn secondary" id="rotateLeft" type="button">↶</button><button class="btn secondary" id="rotateRight" type="button">↷</button></div>
+    <div class="editorTools">
+    <input class="editorZoom" id="editorZoom" type="range" min="1" max="3" step="0.01" value="1" aria-label="Zoom">
+    <button class="btn secondary" id="zoomIn" type="button">+</button>
+    <button class="btn secondary" id="rotateLeft" type="button">↶</button>
+    <button class="btn secondary" id="rotateRight" type="button">↷</button>
+    <button class="btn secondary" id="zoomOut" type="button">−</button>
+  </div>
     <p class="editorHint" id="editorHint">Drag to position · output 320 × 240 JPEG</p>
     <div class="editorActions"><button class="btn secondary" id="editorCancel" type="button">Cancel</button><button class="btn primary" id="editorOk" type="button">OK</button></div>
   </div>
