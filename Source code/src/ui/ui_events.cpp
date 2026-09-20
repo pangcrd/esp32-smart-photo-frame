@@ -1,7 +1,8 @@
 #include "ui_events.h"
-
-#include <Arduino.h>
 #include <lvgl.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/queue.h>
 
 #include "drv/gpio_conf.h"
 #include "drv/bat_adc.h"
@@ -10,11 +11,17 @@
 #include "web/get_api_data.h"
 #include "ui/screens/ui_image_gallery.h"
 #include "ui/screens/ui_setup.h"
+#include "drv/alarm_sound.h"
 
 #include "ui.h"
 
 namespace {
-constexpr uint32_t kDebounceMs = 50;
+constexpr uint32_t kButtonPollMs = 5;       
+constexpr uint8_t kButtonStableSamples = 4;       
+constexpr uint32_t kWifiAutoSwitchDelayMs = 1500; 
+constexpr uint32_t kButtonLockoutMs = 60;         
+constexpr uint32_t kMinShortIntervalMs = 150;    
+constexpr uint32_t kMinTransitionGapMs = 250;    
 constexpr uint32_t kBatteryUpdateIntervalMs = 1000;
 constexpr uint32_t kWifiResetHoldMs = 5000;
 constexpr uint8_t kGalleryRotationPortrait = 1;
@@ -37,10 +44,10 @@ enum class QRState {
 
 UIState current_state = UIState::SETUP;
 QRState qr_state = QRState::INIT;
-bool button_was_pressed = false;
-uint32_t last_button_change_ms = 0;
-uint32_t button_press_started_ms = 0;
-bool wifi_reset_fired = false;
+bool wifi_was_ready = false;
+bool wifi_auto_switch_pending = false;
+uint32_t wifi_ready_since_ms = 0;
+uint32_t last_button_action_ms = 0;
 int last_battery_icon = -1;
 uint32_t last_battery_update_ms = 0;
 lv_obj_t *qr_obj = nullptr;
@@ -51,6 +58,100 @@ String last_weather_time;
 String last_weather_day_month;
 String last_weather_temperature;
 int last_weather_code = -2;
+uint32_t countdown_deadline_ms = 0; bool countdown_active = false;
+int64_t alarm_epoch = 0; int alarm_repeat = 0; int alarm_tz = 0; bool alarm_active = false;
+uint32_t text_color = 0xFFFFFF; uint8_t text_opacity = 255;
+
+enum class ButtonEvent : uint8_t {
+    SHORT_PRESS,  // released before the hold threshold
+    LONG_PRESS,   // held for kWifiResetHoldMs (fired while still held)
+};
+
+struct ButtonMsg {
+    ButtonEvent type;
+    uint32_t t_ms;   // when the button task saw it (to measure how stale it is)
+};
+
+QueueHandle_t button_queue = nullptr;
+
+void post_button_event(ButtonEvent type)
+{
+    const ButtonMsg msg{type, millis()};
+    xQueueSend(button_queue, &msg, 0);   // non-blocking, drops if full
+}
+
+/**
+ * @brief Button sampling task. Runs independently of the LVGL/UI loop, so a
+ * blocked loop (JPEG decode, HTTPS, ...) can no longer make us miss a press or
+ * mis-time the long hold. It only debounces and posts events - never call
+ * lv_* from here.
+ */
+void button_task(void *)
+{
+    bool pressed = digitalRead(boot_button_io::pin) == LOW;
+    bool long_fired = pressed;      // held at boot: ignore until released
+    uint8_t diff_samples = 0;
+    uint32_t press_started_ms = millis();
+    uint32_t last_change_ms = millis() - kButtonLockoutMs;   // last accepted edge
+    uint32_t last_short_ms = millis() - kMinShortIntervalMs; // last SHORT posted
+
+    const TickType_t poll_ticks = pdMS_TO_TICKS(kButtonPollMs);
+
+    for (;;) {
+        vTaskDelay(poll_ticks ? poll_ticks : 1);
+
+        const bool raw = digitalRead(boot_button_io::pin) == LOW;
+        const uint32_t now = millis();
+
+        if (raw == pressed) {
+            diff_samples = 0;
+        } else if (++diff_samples >= kButtonStableSamples) {
+            diff_samples = 0;
+
+            if (now - last_change_ms < kButtonLockoutMs) {
+                // Contact chatter right after an accepted edge: skip it. If the
+                // pin really stays in the new level it is accepted after the lockout.
+                Serial.printf("[BTN] ignored %s edge, %lums after last edge\n",
+                              raw ? "press" : "release",
+                              (unsigned long)(now - last_change_ms));
+            } else {
+                pressed = raw;
+                last_change_ms = now;
+
+                if (pressed) {
+                    press_started_ms = now;
+                    long_fired = false;
+                } else if (!long_fired) {
+                    const uint32_t since_prev = now - last_short_ms;
+                    if (since_prev >= kMinShortIntervalMs) {
+                        last_short_ms = now;
+                        post_button_event(ButtonEvent::SHORT_PRESS);
+                        Serial.printf("[BTN] SHORT held=%lums since_prev=%lums\n",
+                                      (unsigned long)(now - press_started_ms),
+                                      (unsigned long)since_prev);
+                    } else {
+                        Serial.printf("[BTN] dropped duplicate SHORT (%lums after previous)\n",
+                                      (unsigned long)since_prev);
+                    }
+                }
+            }
+        }
+
+        if (pressed && !long_fired &&
+            now - press_started_ms >= kWifiResetHoldMs) {
+            long_fired = true;
+            post_button_event(ButtonEvent::LONG_PRESS);
+        }
+    }
+}
+
+void start_button_task()
+{
+    if (button_queue != nullptr) return;    // already running
+    button_queue = xQueueCreate(4, sizeof(ButtonMsg));
+    if (button_queue == nullptr) return;
+    xTaskCreate(button_task, "button", 4096, nullptr, 3, nullptr);
+}
 
 void invalidate_qr_state();
 
@@ -123,10 +224,11 @@ void switch_to_image_gallery()
     ui_image_gallery_screen_destroy();
     invalidate_weather_ui_cache();
     ui_image_gallery_screen_init();
+    ui_events_set_text_color(text_color, text_opacity);
     load_screen_safely(ui_image_gallery);
 
-    if (ui_time_weather_area != nullptr) {
-        lv_obj_add_flag(ui_time_weather_area, LV_OBJ_FLAG_HIDDEN);
+    if (ui_time_weather_area != nullptr && lv_obj_is_valid(ui_time_weather_area)) {
+    lv_obj_add_flag(ui_time_weather_area, LV_OBJ_FLAG_HIDDEN);
     }
     gallery.start(ui_image_gallery, "/", kGalleryRotationPortrait,
                   kGalleryRotationLandscape);
@@ -137,15 +239,20 @@ void switch_to_image_gallery()
 
 void set_weather_area_visible(bool visible)
 {
-    if (ui_time_weather_area == nullptr) return;
-
-    if (visible) {
-        lv_obj_clear_flag(ui_time_weather_area, LV_OBJ_FLAG_HIDDEN);
-        current_state = UIState::IMAGE_GALLERY_WEATHER_VISIBLE;
+    if (ui_time_weather_area != nullptr && lv_obj_is_valid(ui_time_weather_area)) {
+        if (visible) {
+            lv_obj_clear_flag(ui_time_weather_area, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(ui_time_weather_area, LV_OBJ_FLAG_HIDDEN);
+        }
     } else {
-        lv_obj_add_flag(ui_time_weather_area, LV_OBJ_FLAG_HIDDEN);
-        current_state = UIState::IMAGE_GALLERY_WEATHER_HIDDEN;
+        // Do not bail out silently: the FSM must still advance, otherwise the
+        // button looks dead and the cycle can never reach the setup screen.
+        Serial.println("[UI] ui_time_weather_area missing/invalid");
     }
+
+    current_state = visible ? UIState::IMAGE_GALLERY_WEATHER_VISIBLE
+                            : UIState::IMAGE_GALLERY_WEATHER_HIDDEN;
 }
 
 void handle_button_press()
@@ -184,6 +291,48 @@ void invalidate_qr_state()
 bool has_valid_ip(const IPAddress &ip)
 {
     return ip[0] != 0 || ip[1] != 0 || ip[2] != 0 || ip[3] != 0;
+}
+
+/**
+ * @brief True when the station is connected and holds a usable IP.
+ */
+bool wifi_is_ready()
+{
+    return wifiManager.isConnected() && has_valid_ip(WiFi.localIP());
+}
+
+/**
+ * @brief Leave the setup screen automatically once WiFi has just connected.
+ * Fires only on the not-connected -> connected edge, so pressing the button to
+ * come back to the setup screen while already online does not bounce you back.
+ */
+void process_wifi_auto_switch()
+{
+    const uint32_t now = millis();
+
+    if (!wifi_is_ready()) {
+        wifi_was_ready = false;
+        wifi_auto_switch_pending = false;
+        return;
+    }
+
+    if (!wifi_was_ready) {                 // rising edge
+        wifi_was_ready = true;
+        wifi_ready_since_ms = now;
+        wifi_auto_switch_pending = (current_state == UIState::SETUP);
+    }
+
+    if (!wifi_auto_switch_pending) return;
+
+    if (current_state != UIState::SETUP) { // user already navigated away
+        wifi_auto_switch_pending = false;
+        return;
+    }
+
+    if (now - wifi_ready_since_ms >= kWifiAutoSwitchDelayMs) {
+        wifi_auto_switch_pending = false;
+        switch_to_image_gallery();
+    }
 }
 
 /**
@@ -443,50 +592,120 @@ bool perform_wifi_only_reset()
     Serial.println("[UI] WiFi reset: cleared, AP mode started");
     return true;
 }
+bool ui_events_set_alarm(const char *value, int repeatMinutes, int timezoneSeconds) {
+    if (!value || repeatMinutes < 1 || timezoneSeconds < -50400 || timezoneSeconds > 50400) return false;
+    int h=0,m=0; if (sscanf(value, "%d:%d", &h, &m)!=2 || h<0 || h>23 || m<0 || m>59) return false;
+    time_t now=time(nullptr); if(now<100000) return false; time_t local=now+timezoneSeconds; struct tm *t=gmtime(&local);
+    t->tm_hour=h; t->tm_min=m; t->tm_sec=0; time_t target=mktime(t)-timezoneSeconds; if(target<=now) target+=86400;
+    alarm_epoch=target; alarm_repeat=repeatMinutes; alarm_tz=timezoneSeconds; alarm_active=true; return true;
+}
+void ui_events_cancel_alarm(){alarm_active=false;}
+
+bool ui_events_start_countdown(uint32_t seconds){
+    if(seconds==0)return false; countdown_deadline_ms=millis()+seconds*1000UL; countdown_active=true; return true;}
+
+void ui_events_cancel_countdown(){countdown_active=false;}
+
+void ui_events_set_text_color(uint32_t color,uint8_t opacity){
+    text_color=color&0xFFFFFF;text_opacity=opacity; 
+    lv_obj_t* labels[]={ui_time,ui_week_month,ui_temp}; 
+    for(auto o:labels) 
+    if(o&&lv_obj_is_valid(o)){
+        lv_obj_set_style_text_color(o,lv_color_hex(text_color),LV_PART_MAIN|LV_STATE_DEFAULT);
+        lv_obj_set_style_text_opa(o,text_opacity,LV_PART_MAIN|LV_STATE_DEFAULT);}}
+
+void process_alarm_countdown(){ 
+    uint32_t now=millis(); 
+    AlarmSound::update(); 
+    if(countdown_active && (int32_t)(now-countdown_deadline_ms)>=0){countdown_active=false;
+         AlarmSound::start();} 
+         time_t epoch=time(nullptr); 
+         if(alarm_active && epoch>=alarm_epoch){AlarmSound::start(); 
+            if(alarm_repeat>0) alarm_epoch += alarm_repeat*60; else alarm_active=false;} }
+
+/**
+ * @brief Drain button events on the UI thread. LVGL is not thread-safe, so
+ * every screen change stays here and never runs inside button_task.
+ */
+static void process_button_events()
+{
+    if (button_queue == nullptr) return;
+
+    // One FSM step per call, and never faster than kMinTransitionGapMs: presses
+    // queued during a UI stall are replayed one by one, each rendered by LVGL,
+    // instead of collapsing into a single frame (show -> hide = "nothing happened").
+    const uint32_t now = millis();
+    if (now - last_button_action_ms < kMinTransitionGapMs) return;
+
+    ButtonMsg msg;
+    if (xQueueReceive(button_queue, &msg, 0) != pdTRUE) return;
+
+    const int from = (int)current_state;
+    if (msg.type == ButtonEvent::SHORT_PRESS) {
+        handle_button_press();
+    } else {
+        if (perform_wifi_only_reset()) {
+            switch_to_setup();
+        }
+        xQueueReset(button_queue);      // drop presses made while resetting
+    }
+    last_button_action_ms = millis();
+
+    Serial.printf("[UI] btn %s posted@%lu handled@%lu state %d->%d\n",
+                  msg.type == ButtonEvent::SHORT_PRESS ? "SHORT" : "LONG",
+                  (unsigned long)msg.t_ms, (unsigned long)now, from, (int)current_state);
+}
 
 void ui_events_init()
 {
     pinMode(boot_button_io::pin, INPUT_PULLUP);
     bat_adc_init();
     current_state = UIState::SETUP;
-    button_was_pressed = digitalRead(boot_button_io::pin) == LOW;
-    last_button_change_ms = millis();
-    button_press_started_ms = millis();
-    wifi_reset_fired = button_was_pressed; 
+    wifi_was_ready = false;
+    wifi_auto_switch_pending = false;
+    last_button_action_ms = millis() - kMinTransitionGapMs;
+    start_button_task();
     last_battery_update_ms = millis() - kBatteryUpdateIntervalMs;
     last_battery_icon = -1;
     invalidate_qr_state();
     invalidate_weather_ui_cache();
+
     Weather::begin();
+    AlarmSound::begin();
+    
+    if (LittleFS.begin(false) && LittleFS.exists("/color.json")) {
+    File file = LittleFS.open("/color.json", FILE_READ);
+    if (file) {
+        Serial.printf("color.json size = %u bytes\n", file.size());
+        String content = file.readString();
+        file.close();
+        Serial.println(content);
+
+        JsonDocument d;
+        if (!deserializeJson(d, content)) {
+            text_color = d["textColor"] | 0xFFFFFFUL;
+            int opacity = d["textOpacity"] | 100;
+            opacity = constrain(opacity, 0, 100);
+            text_opacity = (uint8_t)(opacity * 255 / 100);
+        } else {
+            Serial.println("deserializeJson FAILED");
+        }
+    } else {
+        Serial.println("open FILE_READ failed");
+    }
+}
+    ui_events_set_text_color(text_color, text_opacity);
 }
 
 void ui_events_update()
 {
-    const bool button_is_pressed = digitalRead(boot_button_io::pin) == LOW;
+
+    process_button_events();
+    process_wifi_auto_switch();
+
     const uint32_t now = millis();
 
-    if (button_is_pressed != button_was_pressed &&
-        now - last_button_change_ms >= kDebounceMs) {
-        button_was_pressed = button_is_pressed;
-        last_button_change_ms = now;
-
-     
-        if (button_is_pressed) {
-            button_press_started_ms = now;
-            wifi_reset_fired = false;
-        } else if (!wifi_reset_fired) {
-            handle_button_press();
-        }
-    }
-        if (button_is_pressed && !wifi_reset_fired &&
-        now - button_press_started_ms >= kWifiResetHoldMs) {
-        wifi_reset_fired = true;
-        if (perform_wifi_only_reset()) {
-            switch_to_setup();
-        }
-    }
-
-    
+    process_alarm_countdown();
     Weather::update();
     update_weather_ui();
     process_qr_state();
