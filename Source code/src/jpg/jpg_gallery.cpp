@@ -162,6 +162,7 @@ void JpgGallery::begin(const char *dir, uint8_t rotationPortrait,
 
 void JpgGallery::refreshFileList()
 {
+    const uint32_t startedAt = millis();
     if (!sd.isReady()) {
         Serial.println("[Gallery] SD chua init, khong the refresh.");
         return;
@@ -171,13 +172,15 @@ void JpgGallery::refreshFileList()
     const char *dir = _dir.length() > 0 ? _dir.c_str() : "/";
 
     _files.clear();
-    auto jpgFiles = sd.listFiles(dir, ".jpg");
-    auto jpegFiles = sd.listFiles(dir, ".jpeg");
-    _files.insert(_files.end(), jpgFiles.begin(), jpgFiles.end());
-    _files.insert(_files.end(), jpegFiles.begin(), jpegFiles.end());
+    const auto allFiles = sd.listFiles(dir, nullptr);
+    _files.reserve(allFiles.size());
+    for (const String &path : allFiles) {
+        String lower = path; lower.toLowerCase();
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) _files.push_back(path);
+    }
 
-    Serial.printf("[Gallery] Refresh: tim thay %u anh JPEG trong %s\n",
-                  static_cast<unsigned>(_files.size()), dir);
+    Serial.printf("[Gallery] Refresh: tim thay %u anh JPEG trong %s elapsed=%lums free=%u min=%u largest=%u\n",
+                  static_cast<unsigned>(_files.size()), dir, static_cast<unsigned long>(millis() - startedAt), static_cast<unsigned>(ESP.getFreeHeap()), static_cast<unsigned>(esp_get_minimum_free_heap_size()), static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)));
 
     if (_files.empty()) {
         _index = 0;

@@ -1,8 +1,5 @@
 #include "ui_events.h"
 #include <lvgl.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <freertos/queue.h>
 
 #include "drv/gpio_conf.h"
 #include "drv/bat_adc.h"
@@ -62,96 +59,14 @@ uint32_t countdown_deadline_ms = 0; bool countdown_active = false;
 int64_t alarm_epoch = 0; int alarm_repeat = 0; int alarm_tz = 0; bool alarm_active = false;
 uint32_t text_color = 0xFFFFFF; uint8_t text_opacity = 255;
 
-enum class ButtonEvent : uint8_t {
-    SHORT_PRESS,  // released before the hold threshold
-    LONG_PRESS,   // held for kWifiResetHoldMs (fired while still held)
-};
+enum class ButtonEvent : uint8_t { SHORT_PRESS, LONG_PRESS };
 
-struct ButtonMsg {
-    ButtonEvent type;
-    uint32_t t_ms;   // when the button task saw it (to measure how stale it is)
-};
-
-QueueHandle_t button_queue = nullptr;
-
-void post_button_event(ButtonEvent type)
-{
-    const ButtonMsg msg{type, millis()};
-    xQueueSend(button_queue, &msg, 0);   // non-blocking, drops if full
-}
-
-/**
- * @brief Button sampling task. Runs independently of the LVGL/UI loop, so a
- * blocked loop (JPEG decode, HTTPS, ...) can no longer make us miss a press or
- * mis-time the long hold. It only debounces and posts events - never call
- * lv_* from here.
- */
-void button_task(void *)
-{
-    bool pressed = digitalRead(boot_button_io::pin) == LOW;
-    bool long_fired = pressed;      // held at boot: ignore until released
-    uint8_t diff_samples = 0;
-    uint32_t press_started_ms = millis();
-    uint32_t last_change_ms = millis() - kButtonLockoutMs;   // last accepted edge
-    uint32_t last_short_ms = millis() - kMinShortIntervalMs; // last SHORT posted
-
-    const TickType_t poll_ticks = pdMS_TO_TICKS(kButtonPollMs);
-
-    for (;;) {
-        vTaskDelay(poll_ticks ? poll_ticks : 1);
-
-        const bool raw = digitalRead(boot_button_io::pin) == LOW;
-        const uint32_t now = millis();
-
-        if (raw == pressed) {
-            diff_samples = 0;
-        } else if (++diff_samples >= kButtonStableSamples) {
-            diff_samples = 0;
-
-            if (now - last_change_ms < kButtonLockoutMs) {
-                // Contact chatter right after an accepted edge: skip it. If the
-                // pin really stays in the new level it is accepted after the lockout.
-                Serial.printf("[BTN] ignored %s edge, %lums after last edge\n",
-                              raw ? "press" : "release",
-                              (unsigned long)(now - last_change_ms));
-            } else {
-                pressed = raw;
-                last_change_ms = now;
-
-                if (pressed) {
-                    press_started_ms = now;
-                    long_fired = false;
-                } else if (!long_fired) {
-                    const uint32_t since_prev = now - last_short_ms;
-                    if (since_prev >= kMinShortIntervalMs) {
-                        last_short_ms = now;
-                        post_button_event(ButtonEvent::SHORT_PRESS);
-                        Serial.printf("[BTN] SHORT held=%lums since_prev=%lums\n",
-                                      (unsigned long)(now - press_started_ms),
-                                      (unsigned long)since_prev);
-                    } else {
-                        Serial.printf("[BTN] dropped duplicate SHORT (%lums after previous)\n",
-                                      (unsigned long)since_prev);
-                    }
-                }
-            }
-        }
-
-        if (pressed && !long_fired &&
-            now - press_started_ms >= kWifiResetHoldMs) {
-            long_fired = true;
-            post_button_event(ButtonEvent::LONG_PRESS);
-        }
-    }
-}
-
-void start_button_task()
-{
-    if (button_queue != nullptr) return;    // already running
-    button_queue = xQueueCreate(4, sizeof(ButtonMsg));
-    if (button_queue == nullptr) return;
-    xTaskCreate(button_task, "button", 4096, nullptr, 3, nullptr);
-}
+bool button_pressed = false;
+bool button_long_fired = false;
+uint8_t button_diff_samples = 0;
+uint32_t button_press_started_ms = 0;
+uint32_t button_last_change_ms = 0;
+uint32_t button_last_short_ms = 0;
 
 void invalidate_qr_state();
 
@@ -230,7 +145,7 @@ void switch_to_image_gallery()
     if (ui_time_weather_area != nullptr && lv_obj_is_valid(ui_time_weather_area)) {
     lv_obj_add_flag(ui_time_weather_area, LV_OBJ_FLAG_HIDDEN);
     }
-    gallery.start(ui_image_gallery, "/", kGalleryRotationPortrait,
+    gallery.start(ui_image_gallery, "/image", kGalleryRotationPortrait,
                   kGalleryRotationLandscape);
 
     lv_obj_del(transition_screen);
@@ -629,33 +544,24 @@ void process_alarm_countdown(){
  */
 static void process_button_events()
 {
-    if (button_queue == nullptr) return;
-
-    // One FSM step per call, and never faster than kMinTransitionGapMs: presses
-    // queued during a UI stall are replayed one by one, each rendered by LVGL,
-    // instead of collapsing into a single frame (show -> hide = "nothing happened").
     const uint32_t now = millis();
-    if (now - last_button_action_ms < kMinTransitionGapMs) return;
-
-    ButtonMsg msg;
-    if (xQueueReceive(button_queue, &msg, 0) != pdTRUE) return;
-
-    const int from = (int)current_state;
-    if (msg.type == ButtonEvent::SHORT_PRESS) {
-        handle_button_press();
-    } else {
-        if (perform_wifi_only_reset()) {
-            switch_to_setup();
+    const bool raw_pressed = digitalRead(boot_button_io::pin) == LOW;
+    if (raw_pressed == button_pressed) button_diff_samples = 0;
+    else if (++button_diff_samples >= kButtonStableSamples && now - button_last_change_ms >= kButtonLockoutMs) {
+        button_diff_samples = 0; button_pressed = raw_pressed; button_last_change_ms = now;
+        if (button_pressed) { button_press_started_ms = now; button_long_fired = false; }
+        else if (!button_long_fired && now - button_last_short_ms >= kMinShortIntervalMs) {
+            button_last_short_ms = now; const int from = static_cast<int>(current_state);
+            handle_button_press(); last_button_action_ms = now;
+            Serial.printf("[UI] btn SHORT handled@%lu state %d->%d\n", static_cast<unsigned long>(now), from, static_cast<int>(current_state));
         }
-        xQueueReset(button_queue);      // drop presses made while resetting
     }
-    last_button_action_ms = millis();
-
-    Serial.printf("[UI] btn %s posted@%lu handled@%lu state %d->%d\n",
-                  msg.type == ButtonEvent::SHORT_PRESS ? "SHORT" : "LONG",
-                  (unsigned long)msg.t_ms, (unsigned long)now, from, (int)current_state);
+    if (button_pressed && !button_long_fired && now - button_press_started_ms >= kWifiResetHoldMs) {
+        button_long_fired = true; const int from = static_cast<int>(current_state);
+        if (perform_wifi_only_reset()) switch_to_setup();
+        Serial.printf("[UI] btn LONG handled@%lu state %d->%d\n", static_cast<unsigned long>(now), from, static_cast<int>(current_state));
+    }
 }
-
 void ui_events_init()
 {
     pinMode(boot_button_io::pin, INPUT_PULLUP);
@@ -663,8 +569,14 @@ void ui_events_init()
     current_state = UIState::SETUP;
     wifi_was_ready = false;
     wifi_auto_switch_pending = false;
-    last_button_action_ms = millis() - kMinTransitionGapMs;
-    start_button_task();
+    const uint32_t now = millis();
+    button_pressed = digitalRead(boot_button_io::pin) == LOW;
+    button_long_fired = button_pressed;
+    button_diff_samples = 0;
+    button_press_started_ms = now;
+    button_last_change_ms = now - kButtonLockoutMs;
+    button_last_short_ms = now - kMinShortIntervalMs;
+    last_button_action_ms = now - kMinTransitionGapMs;
     last_battery_update_ms = millis() - kBatteryUpdateIntervalMs;
     last_battery_icon = -1;
     invalidate_qr_state();
