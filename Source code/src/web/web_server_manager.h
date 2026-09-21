@@ -40,6 +40,9 @@ private:
     void handleWiFiConnect();
     void handleWiFiReset();
     void handleNotFound();
+    void refreshGalleryCache();
+    void addGalleryCacheEntry(const String &path, size_t size);
+    void removeGalleryCacheEntry(const String &path);
     void handleGallery();
     void handleGalleryFile();
     void handleGalleryUpload();
@@ -64,6 +67,12 @@ private:
     File _uploadFile;
     bool _uploadOk = false;
     size_t _uploadBytesWritten = 0;
+
+    String _uploadPath;
+    struct GalleryEntry { String path; size_t sizeBytes; };
+    std::vector<GalleryEntry> _galleryCache;
+    bool _galleryCacheReady = false;
+
 
     uint32_t _slideIntervalMs = 5000;
     uint8_t _brightness;

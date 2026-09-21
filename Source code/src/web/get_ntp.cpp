@@ -20,9 +20,9 @@ void startTimeSync(uint32_t now, const WebServerManager::WeatherConfig &config)
 bool updateClock()
 {
 // vietnamese weekday
-    static const char* const wdayVN[7] = {
-    "CN", "T2", "T3", "T4", "T5", "T6", "T7"
-};
+//     static const char* const wdayVN[7] = {
+//     "CN", "T2", "T3", "T4", "T5", "T6", "T7"
+// };
 
     struct tm timeInfo;
     time_t now;
@@ -32,17 +32,17 @@ bool updateClock()
 
     char timeBuffer[8];
     char dateBuffer[24];
-    //strftime(timeBuffer, sizeof(timeBuffer), "%H:%M", &timeInfo);
+    strftime(timeBuffer, sizeof(timeBuffer), "%H:%M", &timeInfo);
     bool colonOn = (timeInfo.tm_sec % 2) == 0;
     snprintf(timeBuffer, sizeof(timeBuffer), "%02d%c%02d",
              timeInfo.tm_hour, colonOn ? ':' : ' ', timeInfo.tm_min);
 
-    snprintf(dateBuffer, sizeof(dateBuffer), "%s, %02d Thg %d",
-         wdayVN[timeInfo.tm_wday],
-         timeInfo.tm_mday,
-         timeInfo.tm_mon + 1);
+    // snprintf(dateBuffer, sizeof(dateBuffer), "%s, %02d Thg %d",
+    //      wdayVN[timeInfo.tm_wday],
+    //      timeInfo.tm_mday,
+    //      timeInfo.tm_mon + 1);
     
-    //strftime(dateBuffer, sizeof(dateBuffer), "%a, %b %d", &timeInfo);
+    strftime(dateBuffer, sizeof(dateBuffer), "%a, %b %d", &timeInfo);
     currentData.currentTime = timeBuffer;
     currentData.currentDayMonth = dateBuffer;
     currentData.timeValid = true;

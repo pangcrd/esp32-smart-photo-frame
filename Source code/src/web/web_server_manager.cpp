@@ -12,6 +12,8 @@
 #include "jpg/jpg_gallery.h"
 #include "web/get_api_data.h"
 
+#include "ui/ui_events.h"
+
 namespace
 {
 String simpleResponseJson(bool ok, const char *error = nullptr, bool restarting = false)
@@ -58,6 +60,7 @@ String systemStatusJson(const SystemStatus &status)
 }
 
 constexpr const char *kGalleryConfigPath = "/gallery.json";
+constexpr const char *kImageDirectory = "/image";
 constexpr const char *kWeatherConfigPath = "/weather.json";
 constexpr float kMinLatitude = -90.0f;
 constexpr float kMaxLatitude = 90.0f;
@@ -312,41 +315,47 @@ void WebServerManager::handleNotFound()
     }
     _server.send(404, "text/plain", "Not found");
 }
+/** Add cache */
+void WebServerManager::refreshGalleryCache()
+{
+    _galleryCache.clear();
+    if (sd.isReady()) {
+        const std::vector<String> files = sd.listFiles(kImageDirectory, nullptr);
+        _galleryCache.reserve(files.size());
+        for (const String &path : files) {
+            String lower = path; lower.toLowerCase();
+            if (!lower.endsWith(".jpg") && !lower.endsWith(".jpeg")) continue;
+            File file = sd.open(path.c_str(), FILE_READ);
+            if (!file) continue;
+            _galleryCache.push_back({path, file.size()});
+            file.close();
+        }
+    }
+    _galleryCacheReady = true;
+}
+
+void WebServerManager::addGalleryCacheEntry(const String &path, size_t size)
+{
+    if (!_galleryCacheReady) return;
+    for (GalleryEntry &entry : _galleryCache) { if (entry.path == path) { entry.sizeBytes = size; return; } }
+    _galleryCache.push_back({path, size});
+}
+
+void WebServerManager::removeGalleryCacheEntry(const String &path)
+{
+    if (!_galleryCacheReady) return;
+    for (auto it = _galleryCache.begin(); it != _galleryCache.end(); ++it) { if (it->path == path) { _galleryCache.erase(it); return; } }
+}
+
 
 void WebServerManager::handleGallery()
 {
-    JsonDocument document;
-    JsonArray images = document["images"].to<JsonArray>();
-    uint64_t totalBytes = 0;
-
-    if (sd.isReady())
-    {
-        std::vector<String> files = sd.listFiles("/", nullptr); // lấy tất cả, tự lọc đuôi bên dưới
-        for (const String &path : files)
-        {
-            String lower = path;
-            lower.toLowerCase();
-            if (!lower.endsWith(".jpg") && !lower.endsWith(".jpeg")) continue;
-
-            File f = sd.open(path.c_str(), FILE_READ);
-            if (!f) continue;
-            const size_t size = f.size();
-            f.close();
-
-            JsonObject image = images.add<JsonObject>();
-            image["name"] = path.substring(path.lastIndexOf('/') + 1);
-            image["path"] = path;
-            image["sizeBytes"] = size;
-            totalBytes += size;
-        }
-    }
-    document["count"] = images.size();
-    document["totalBytes"] = totalBytes;
-    document["slideIntervalSec"] = _slideIntervalMs / 1000;
-
-    String json;
-    serializeJson(document, json);
-    _server.send(200, "application/json", json);
+    const uint32_t startedAt = millis();
+    if (!_galleryCacheReady) refreshGalleryCache();
+    JsonDocument document; JsonArray images = document["images"].to<JsonArray>(); uint64_t totalBytes = 0;
+    for (const GalleryEntry &entry : _galleryCache) { JsonObject image = images.add<JsonObject>(); image["name"] = entry.path.substring(entry.path.lastIndexOf(47) + 1); image["path"] = entry.path; image["sizeBytes"] = entry.sizeBytes; totalBytes += entry.sizeBytes; }
+    document["count"] = images.size(); document["totalBytes"] = totalBytes; document["slideIntervalSec"] = _slideIntervalMs / 1000;
+    String json; serializeJson(document, json); _server.send(200, "application/json", json);
 }
 
 void WebServerManager::handleGalleryFile()
@@ -377,75 +386,73 @@ void WebServerManager::handleGalleryFile()
 void WebServerManager::handleGalleryUploadData()
 {
     HTTPUpload &upload = _server.upload();
-
     if (upload.status == UPLOAD_FILE_START)
     {
+        if (_uploadFile) _uploadFile.close();
+        _uploadFile = File();
         _uploadOk = false;
         _uploadBytesWritten = 0;
-
         String filename = upload.filename;
         if (filename.indexOf("..") >= 0) filename = "upload.jpg";
-        if (!filename.startsWith("/")) filename = "/" + filename;
+        const int lastSlash = filename.lastIndexOf('/');
+        if (lastSlash >= 0) filename = filename.substring(lastSlash + 1);
+        filename = String(kImageDirectory) + "/" + filename;
+        _uploadPath = filename;
         if (!filename.endsWith(".jpg") && !filename.endsWith(".jpeg"))
-        {
-            Serial.println("[Gallery] Reject non-JPG upload");
-            return;
-        }
-
+        { Serial.println("[Gallery] Reject non-JPG upload"); return; }
         Serial.printf("[Gallery] Upload start: %s\n", filename.c_str());
         _uploadFile = sd.open(filename.c_str(), FILE_WRITE);
         if (!_uploadFile)
-            Serial.println("[Gallery] ERROR: khong mo duoc file de ghi (SD ban/day/loi)");
+        { Serial.println("[Gallery] ERROR: khong mo duoc file de ghi (SD ban/day/loi)"); _uploadOk = false; }
     }
     else if (upload.status == UPLOAD_FILE_WRITE)
     {
-        if (_uploadFile)
+        if (_uploadFile && upload.buf != nullptr && upload.currentSize > 0)
         {
             const size_t written = _uploadFile.write(upload.buf, upload.currentSize);
             _uploadBytesWritten += written;
             if (written != upload.currentSize)
-                Serial.printf("[Gallery] ERROR: ghi thieu (%u/%u byte)\n",
-                              (unsigned)written, (unsigned)upload.currentSize);
+            { Serial.printf("[Gallery] ERROR: ghi thieu (%u/%u byte)\n", (unsigned)written, (unsigned)upload.currentSize); _uploadOk = false; }
         }
+        else if (upload.currentSize > 0) _uploadOk = false;
     }
     else if (upload.status == UPLOAD_FILE_END)
     {
         if (_uploadFile)
         {
             _uploadFile.close();
+            _uploadFile = File();
             _uploadOk = (_uploadBytesWritten == upload.totalSize);
-            Serial.printf("[Gallery] Upload end: %s, ghi=%u/%u, ok=%d\n",
-                          upload.filename.c_str(), (unsigned)_uploadBytesWritten,
-                          (unsigned)upload.totalSize, _uploadOk);
+            Serial.printf("[Gallery] Upload end: %s, ghi=%u/%u, ok=%d\n", upload.filename.c_str(), (unsigned)_uploadBytesWritten, (unsigned)upload.totalSize, _uploadOk);
         }
-        else
-        {
-            Serial.println("[Gallery] Upload end nhung file chua he mo -> that bai");
-        }
+        else { Serial.println("[Gallery] Upload end nhung file chua he mo -> that bai"); _uploadOk = false; }
     }
     else if (upload.status == UPLOAD_FILE_ABORTED)
     {
         Serial.println("[Gallery] Upload bi huy giua chung");
         if (_uploadFile) _uploadFile.close();
+        _uploadFile = File();
         _uploadOk = false;
+        _uploadBytesWritten = 0;
     }
 }
-
 void WebServerManager::handleGalleryUpload()
 {
-    if (_uploadOk)
+    const bool uploadOk = _uploadOk;
+    if (uploadOk)
     {
-        gallery.refreshFileList(); // <-- thêm dòng này
+       // gallery.refreshFileList();
+        addGalleryCacheEntry(_uploadPath, _uploadBytesWritten);
+        _uploadBytesWritten = 0;
         _server.send(200, "application/json", "{\"ok\":true}");
     }
-    else
-    {
-        _server.send(500, "application/json", "{\"ok\":false,\"error\":\"write failed\"}");
-    }
+    else _server.send(500, "application/json", "{\"ok\":false,\"error\":\"write failed\"}");
+    _uploadOk = false;
 }
 
 void WebServerManager::handleGalleryDelete()
 {
+    const uint32_t startedAt = millis();
     if (!_server.hasArg("path"))
     {
         _server.send(400, "application/json", "{\"ok\":false,\"error\":\"missing path\"}");
@@ -460,7 +467,8 @@ void WebServerManager::handleGalleryDelete()
     if (!path.startsWith("/")) path = "/" + path;
 
     const bool removed = sd.remove(path.c_str());
-    if (removed) gallery.refreshFileList(); // <-- thêm dòng này
+    if (removed) removeGalleryCacheEntry(path);
+    //if (removed) gallery.refreshFileList();
 
     _server.send(removed ? 200 : 404, "application/json",
                  removed ? "{\"ok\":true}" : "{\"ok\":false,\"error\":\"not found\"}");
@@ -689,3 +697,5 @@ void WebServerManager::handleWeatherCurrent()
     serializeJson(document, json);
     _server.send(200, "application/json", json);
 }
+
+

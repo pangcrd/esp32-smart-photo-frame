@@ -30,6 +30,11 @@ bool SDCardManager::begin(bool oneBitMode, uint32_t freqHz)
     }
  
     _initialized = true;
+
+    // Keep gallery files out of the FAT root directory.
+    if (!SD_MMC.exists("/image") && !SD_MMC.mkdir("/image")) {
+        Serial.println("[SD] Cannot create /image directory");
+    }
  
     Serial.print("[SD] Card Type: ");
     if (type == CARD_MMC) Serial.println("MMC");
@@ -79,6 +84,7 @@ bool SDCardManager::_hasExtension(const String &filename, const char *ext)
 std::vector<String> SDCardManager::listFiles(const char *dir, const char *ext)
 {
     std::vector<String> result;
+    result.reserve(64);
  
     if (!_initialized) {
         Serial.println("[SD] listFiles called before begin()");
@@ -115,6 +121,8 @@ std::vector<String> SDCardManager::listFiles(const char *dir, const char *ext)
         file.close();
         file = root.openNextFile();
     }
+    // Explicitly close the terminal/invalid handle as well as the directory handle.
+    file.close();
     root.close(); // QUAN TRỌNG: tránh leak file descriptor, ảnh hưởng các lần open sau
  
     return result;

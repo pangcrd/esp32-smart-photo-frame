@@ -139,7 +139,6 @@ void switch_to_image_gallery()
     ui_image_gallery_screen_destroy();
     invalidate_weather_ui_cache();
     ui_image_gallery_screen_init();
-    ui_events_set_text_color(text_color, text_opacity);
     load_screen_safely(ui_image_gallery);
 
     if (ui_time_weather_area != nullptr && lv_obj_is_valid(ui_time_weather_area)) {
