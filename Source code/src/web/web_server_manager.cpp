@@ -441,8 +441,8 @@ void WebServerManager::handleGalleryUpload()
     const bool uploadOk = _uploadOk;
     if (uploadOk)
     {
-       // gallery.refreshFileList();
         addGalleryCacheEntry(_uploadPath, _uploadBytesWritten);
+        gallery.addFile(_uploadPath);
         _uploadBytesWritten = 0;
         _server.send(200, "application/json", "{\"ok\":true}");
     }

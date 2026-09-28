@@ -204,6 +204,39 @@ void JpgGallery::refreshFileList()
     }
 }
 
+void JpgGallery::addFile(const String &path)
+{
+    if (!_active || path.isEmpty()) return;
+
+    String lower = path;
+    lower.toLowerCase();
+    if (!lower.endsWith(".jpg") && !lower.endsWith(".jpeg")) return;
+
+    for (const String &file : _files) {
+        if (file == path) return;
+    }
+    _files.push_back(path);
+}
+
+void JpgGallery::removeFile(const String &path)
+{
+    if (!_active) return;
+
+    for (size_t i = 0; i < _files.size(); ++i) {
+        if (_files[i] != path) continue;
+
+        _files.erase(_files.begin() + i);
+        if (i < _index && _index > 0) --_index;
+        if (_files.empty()) {
+            _index = 0;
+            _lastShownPath = "";
+        } else if (_index >= _files.size()) {
+            _index = 0;
+        }
+        return;
+    }
+}
+
 void JpgGallery::showNext()
 {
     if (!_active || _files.empty()) return;

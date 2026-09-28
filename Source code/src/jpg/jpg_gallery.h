@@ -32,6 +32,8 @@ public:
     size_t imageCount() const { return _files.size(); }
     void setMaxBrightness(uint8_t value) { (void)value; }
     void refreshFileList();
+    void addFile(const String &path);
+    void removeFile(const String &path);
     void setIntervalMs(uint32_t ms) { _intervalMs = ms; }
     void tick();
 
