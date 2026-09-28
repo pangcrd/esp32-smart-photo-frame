@@ -467,8 +467,10 @@ void WebServerManager::handleGalleryDelete()
     if (!path.startsWith("/")) path = "/" + path;
 
     const bool removed = sd.remove(path.c_str());
-    if (removed) removeGalleryCacheEntry(path);
-    //if (removed) gallery.refreshFileList();
+     if (removed) {
+        removeGalleryCacheEntry(path);
+        gallery.removeFile(path);
+    };
 
     _server.send(removed ? 200 : 404, "application/json",
                  removed ? "{\"ok\":true}" : "{\"ok\":false,\"error\":\"not found\"}");
